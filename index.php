@@ -108,7 +108,7 @@ function handleCapgoUpdateCheck($config)
             $found[] = [
                 'available' => true,
                 'version' => $fileVersion,
-                'url' => $baseUrl . '/' . $dir . "/$file",
+                'url' => $baseUrl . "/{$config['dirs']['capgo']}/{$app_id}/{$version_build}/{$platform}/" . "$file",
                 'mandatory' => true
             ];
         }
@@ -151,7 +151,7 @@ function handleCodePushUpdateCheck($config)
 
         if ($fileLabel > $label) {
             $found[] = [
-                'download_url' => $baseUrl . "/" . $dir . "/$file",
+                'download_url' => $baseUrl . "/{$config['dirs']['codepush']}/{$deployment_key}/{$app_version}/" . "$file",
                 'description' => "",
                 'is_available' => true,
                 'is_disabled' => false,
