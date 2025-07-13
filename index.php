@@ -186,7 +186,7 @@ function handleCodePushUpdateCheck($config)
                 'package_size' => filesize("$dir/$file"),
                 'should_run_binary_version' => false,
                 'update_app_version' => false,
-                'is_mandatory' => true,
+                'is_mandatory' => false,
             ];
         }
     }
