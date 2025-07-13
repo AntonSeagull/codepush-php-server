@@ -25,13 +25,23 @@ git clone https://github.com/AntonSeagull/codepush-php-server.git ./
 
 ### 3. Настройка
 
-Откройте файл `index.php` и измените `upload_key` на ваш секретный ключ:
+Переименуйте файл конфигурации и установите свой ключ:
+
+```bash
+cp config.tmp.php config.php
+```
+
+Затем откройте `config.php` и измените `upload_key` на ваш секретный ключ:
 
 ```php
-$f3->set('config', [
+$config = [
     'upload_key' => 'your-secret-key-here', // Замените на ваш ключ
-    // ... остальные настройки
-]);
+    'dirs' => [
+        'storage_path' => __DIR__ . '/storage',
+        'codepush' => 'codepush',
+        'capgo' => 'capgo',
+    ]
+];
 ```
 
 ### 4. Настройка веб-сервера
@@ -81,6 +91,8 @@ codepush-php-server/
 ├── storage/           # Директория для хранения сборок
 │   ├── capgo/         # Capgo сборки
 │   └── codepush/      # CodePush сборки
+├── config.tmp.php     # Шаблон конфигурации
+├── config.php         # Файл конфигурации (создается пользователем)
 ├── index.php          # Точка входа приложения
 └── README.md          # Этот файл
 ```
@@ -92,7 +104,7 @@ codepush-php-server/
 
 ## Безопасность
 
-⚠️ **Важно:** Обязательно измените `upload_key` в файле `index.php` перед использованием в продакшене. Использование ключа по умолчанию приведет к ошибке 403.
+⚠️ **Важно:** Обязательно измените `upload_key` в файле `config.php` перед использованием в продакшене. Использование ключа по умолчанию приведет к ошибке 403.
 
 ## Лицензия
 

@@ -1,13 +1,12 @@
 <?php
-// Простая конфигурация
-$config = [
-    'upload_key' => 'my-secret-key', // Change this to your actual upload key
-    'dirs' => [
-        'storage_path' => __DIR__ . '/storage',
-        'codepush' => 'codepush',
-        'capgo' => 'capgo',
-    ]
-];
+
+//Пытаемся загрузить конфигурацию
+$configFile = __DIR__ . '/config.php';
+if (file_exists($configFile)) {
+    require_once $configFile;
+} else {
+    die('Configuration file not found. Please create config.php or config.php.tmp.');
+}
 
 // Простой роутер
 $requestMethod = $_SERVER['REQUEST_METHOD'];
