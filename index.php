@@ -1,43 +1,177 @@
 <?php
-require_once __DIR__ . '/vendor/autoload.php';
-
-
-use App\Capgo;
-use App\CodePush;
-
-
-$f3 = Base::instance();
-
-$f3->set('config', [
+// Простая конфигурация
+$config = [
     'upload_key' => 'my-secret-key', // Change this to your actual upload key
     'dirs' => [
         'storage_path' => __DIR__ . '/storage',
         'codepush' => 'codepush',
         'capgo' => 'capgo',
     ]
-]);
+];
 
-$f3->route("POST|GET /capgo/update_check", function ($f3) {
-    Capgo::updateCheck();
-});
+// Простой роутер
+$requestMethod = $_SERVER['REQUEST_METHOD'];
+$requestUri = $_SERVER['REQUEST_URI'];
+$path = parse_url($requestUri, PHP_URL_PATH);
 
+// Убираем trailing slash
+$path = rtrim($path, '/');
 
-$f3->route("POST|GET /v0.1/public/codepush/update_check", function ($f3) {
-    CodePush::updateCheck();
-});
+// Роутинг
+switch ($path) {
+    case '/capgo/update_check':
+        if ($requestMethod === 'GET' || $requestMethod === 'POST') {
+            handleCapgoUpdateCheck($config);
+        } else {
+            http_response_code(405);
+            echo json_encode(['error' => 'Method not allowed']);
+        }
+        break;
 
+    case '/v0.1/public/codepush/update_check':
+        if ($requestMethod === 'GET' || $requestMethod === 'POST') {
+            handleCodePushUpdateCheck($config);
+        } else {
+            http_response_code(405);
+            echo json_encode(['error' => 'Method not allowed']);
+        }
+        break;
 
-$f3->route('POST /v0.1/public/codepush/report_status/deploy', function ($f3) {
-    echo json_encode(['status' => 'received']);
-});
-$f3->route('POST /v0.1/public/codepush/report_status/download', function ($f3) {
-    echo json_encode(['status' => 'received']);
-});
+    case '/v0.1/public/codepush/report_status/deploy':
+        if ($requestMethod === 'POST') {
+            echo json_encode(['status' => 'received']);
+        } else {
+            http_response_code(405);
+            echo json_encode(['error' => 'Method not allowed']);
+        }
+        break;
 
+    case '/v0.1/public/codepush/report_status/download':
+        if ($requestMethod === 'POST') {
+            echo json_encode(['status' => 'received']);
+        } else {
+            http_response_code(405);
+            echo json_encode(['error' => 'Method not allowed']);
+        }
+        break;
 
-$f3->route('POST /upload', function ($f3) {
-    $config = $f3->get('config');
+    case '/upload':
+        if ($requestMethod === 'POST') {
+            handleUpload($config);
+        } else {
+            http_response_code(405);
+            echo json_encode(['error' => 'Method not allowed']);
+        }
+        break;
 
+    default:
+        http_response_code(404);
+        echo json_encode(['error' => 'Not found']);
+        break;
+}
+
+function handleCapgoUpdateCheck($config)
+{
+    $input = file_get_contents('php://input');
+    $data = json_decode($input, true);
+
+    $app_id = $data['app_id'] ?? '';
+    $version_build = $data['version_build'] ?? '';
+    $version_name = (int) preg_replace('/\D/', '', $data['version_name'] ?? '');
+    $platform = $data['platform'] ?? '';
+
+    if (!$app_id || !$version_build || !$platform) {
+        echo json_encode(['available' => false]);
+        return;
+    }
+
+    $dir = "{$config['dirs']['storage_path']}/{$config['dirs']['capgo']}/{$app_id}/{$version_build}/{$platform}";
+    if (!is_dir($dir)) {
+        echo json_encode(['available' => false]);
+        return;
+    }
+
+    $files = scandir($dir);
+    $found = [];
+
+    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $baseUrl = "{$scheme}://{$host}";
+
+    foreach ($files as $file) {
+        if ($file === '.' || $file === '..') continue;
+
+        $info = explode('-', $file);
+        $fileVersion = (int)($info[3] ?? 0);
+
+        if ($fileVersion > $version_name) {
+            $found[] = [
+                'available' => true,
+                'version' => $fileVersion,
+                'url' => $baseUrl . "/storage/{$config['dirs']['capgo']}/$file",
+                'mandatory' => true
+            ];
+        }
+    }
+
+    usort($found, fn($a, $b) => $b['version'] <=> $a['version']);
+    echo json_encode($found[0] ?? ['available' => false]);
+}
+
+function handleCodePushUpdateCheck($config)
+{
+    $deployment_key = $_GET['deployment_key'] ?? '';
+    $app_version = $_GET['app_version'] ?? '';
+    $label = (int) preg_replace('/\D/', '', $_GET['label'] ?? '0');
+
+    if (!$deployment_key || !$app_version) {
+        echo json_encode(['update_info' => ['is_available' => false]]);
+        return;
+    }
+
+    $dir = "{$config['dirs']['storage_path']}/{$config['dirs']['codepush']}/{$deployment_key}/{$app_version}";
+    if (!is_dir($dir)) {
+        echo json_encode(['update_info' => ['is_available' => false]]);
+        return;
+    }
+
+    $files = scandir($dir);
+    $found = [];
+
+    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $baseUrl = "{$scheme}://{$host}";
+
+    foreach ($files as $file) {
+        if ($file === '.' || $file === '..') continue;
+
+        $info = explode('-', $file);
+        $fileLabel = (int)($info[2] ?? 0);
+        $packageHash = $info[3] ?? null;
+
+        if ($fileLabel > $label) {
+            $found[] = [
+                'download_url' => $baseUrl . "/storage/{$config['dirs']['codepush']}/$file",
+                'description' => "",
+                'is_available' => true,
+                'is_disabled' => false,
+                'target_binary_range' => $app_version,
+                'label' => $fileLabel,
+                'package_hash' => $packageHash,
+                'package_size' => filesize("$dir/$file"),
+                'should_run_binary_version' => false,
+                'update_app_version' => false,
+                'is_mandatory' => true,
+            ];
+        }
+    }
+
+    usort($found, fn($a, $b) => $b['label'] <=> $a['label']);
+    echo json_encode(['update_info' => $found[0] ?? ['is_available' => false]]);
+}
+
+function handleUpload($config)
+{
     $type = $_POST['type'] ?? '';
     $uploadKey = $_POST['upload_key'] ?? '';
 
@@ -46,7 +180,6 @@ $f3->route('POST /upload', function ($f3) {
         echo json_encode(['error' => 'Upload key is not set']);
         return;
     }
-
 
     if ($uploadKey !== $config['upload_key']) {
         http_response_code(403);
@@ -67,9 +200,7 @@ $f3->route('POST /upload', function ($f3) {
     }
 
     $file = $_FILES['file'];
-
-    $fileName =  basename($file['name']);
-
+    $fileName = basename($file['name']);
     $path = explode('-', $fileName);
 
     if ($type == 'capgo') {
@@ -77,11 +208,10 @@ $f3->route('POST /upload', function ($f3) {
     } else {
         $storageDir = $config['dirs']['storage_path'] . '/' . $config['dirs'][$type] . '/' . $path[0] . '/' . $path[1];
     }
+
     if (!is_dir($storageDir)) {
         mkdir($storageDir, 0755, true);
     }
-
-
 
     $targetPath = $storageDir . '/' . basename($file['name']);
 
@@ -91,13 +221,5 @@ $f3->route('POST /upload', function ($f3) {
         return;
     }
 
-    echo json_encode([
-        'status' => 'ok',
-
-    ]);
-});
-
-
-
-
-$f3->run();
+    echo json_encode(['status' => 'ok']);
+}

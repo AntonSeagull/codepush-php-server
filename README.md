@@ -9,6 +9,7 @@
 - ✅ Загрузка сборок через веб-интерфейс
 - ✅ Автоматическое управление версиями
 - ✅ Безопасная загрузка с ключом доступа
+- ✅ Без внешних зависимостей (только PHP)
 
 ## Установка
 
@@ -18,11 +19,9 @@
 git clone https://github.com/AntonSeagull/codepush-php-server.git ./
 ```
 
-### 2. Установка зависимостей
+### 2. Готово!
 
-```bash
-composer install
-```
+Проект не требует установки зависимостей - он работает на чистом PHP без внешних библиотек.
 
 ### 3. Настройка
 
@@ -78,14 +77,10 @@ liveupdate-cli
 
 ```
 codepush-php-server/
-├── app/
-│   ├── Capgo.php      # Обработчик Capgo API
-│   └── CodePush.php   # Обработчик CodePush API
+├── app/               # Директория для классов (если понадобятся)
 ├── storage/           # Директория для хранения сборок
 │   ├── capgo/         # Capgo сборки
 │   └── codepush/      # CodePush сборки
-├── vendor/            # Зависимости Composer
-├── composer.json      # Конфигурация Composer
 ├── index.php          # Точка входа приложения
 └── README.md          # Этот файл
 ```
@@ -93,7 +88,6 @@ codepush-php-server/
 ## Требования
 
 - PHP 8.0.2 или выше
-- Composer
 - Веб-сервер (Apache/Nginx)
 
 ## Безопасность
