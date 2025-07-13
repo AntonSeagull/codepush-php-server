@@ -38,6 +38,8 @@ switch ($path) {
 
     case '/v0.1/public/codepush/report_status/deploy':
         if ($requestMethod === 'POST') {
+
+            logRequest();
             echo json_encode(['status' => 'received']);
         } else {
             http_response_code(405);
@@ -47,6 +49,7 @@ switch ($path) {
 
     case '/v0.1/public/codepush/report_status/download':
         if ($requestMethod === 'POST') {
+            logRequest();
             echo json_encode(['status' => 'received']);
         } else {
             http_response_code(405);
@@ -65,8 +68,31 @@ switch ($path) {
 
     default:
         http_response_code(404);
+        if ($requestMethod === 'POST') {
+            logRequest();
+        }
         echo json_encode(['error' => 'Not found']);
         break;
+}
+
+function logRequest()
+{
+    $date = date('Y-m-d');
+    $logDir = __DIR__ . '/logs';
+    $logFile = $logDir . '/' . $date . '.log';
+
+    // Убедимся, что директория существует
+    if (!is_dir($logDir)) {
+        mkdir($logDir, 0755, true);
+    }
+
+    $method = $_SERVER['REQUEST_METHOD'];
+    $uri = $_SERVER['REQUEST_URI'];
+    $body = file_get_contents('php://input');
+
+    $logEntry = "[" . date('c') . "] $method $uri\n$body\n\n";
+
+    file_put_contents($logFile, $logEntry, FILE_APPEND);
 }
 
 function handleCapgoUpdateCheck($config)
