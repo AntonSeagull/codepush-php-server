@@ -15,8 +15,7 @@
 ### 1. Клонирование проекта
 
 ```bash
-git clone https://github.com/AntonSeagull/codepush-php-server.git
-cd codepush-php-server
+git clone https://github.com/AntonSeagull/codepush-php-server.git ./
 ```
 
 ### 2. Установка зависимостей
