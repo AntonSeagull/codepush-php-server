@@ -181,12 +181,12 @@ function handleCodePushUpdateCheck($config)
                 'is_available' => true,
                 'is_disabled' => false,
                 'target_binary_range' => $app_version,
-                'label' => $fileLabel,
+                'label' => (string) $fileLabel,
                 'package_hash' => $packageHash,
                 'package_size' => filesize("$dir/$file"),
                 'should_run_binary_version' => false,
                 'update_app_version' => false,
-                'is_mandatory' => false,
+                'is_mandatory' => true,
             ];
         }
     }
